@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 class ConfigManager:
@@ -57,6 +57,9 @@ class ConfigManager:
                 "model_cache": "vlmhyperbench/model_cache",
                 "wheels": "vlmhyperbench/wheels",
             },
+            "eval_docker_img": "ghcr.io/vlmhyperbenchteam/metric-evaluator:python3.10-slim_v0.1.0",
+            "vlm_run_packages": "vlmhyperbench/cfg/vlm_run_requirements.txt",
+            "eval_run_packages": "vlmhyperbench/cfg/eval_run_requirements.txt",
         }
 
         return default_cfg
@@ -110,13 +113,11 @@ class ConfigManager:
             OSError: При ошибках обработки путей
         """
         volumes = {}
-        for dir_type in self.cfg:
-            for dir_name in self.cfg[dir_type]:
-                host_path = self.cfg[dir_type][dir_name]
+        for dir_type in ["data_dirs", "system_dirs"]:
+            for dir_name, host_path in self.cfg.get(dir_type, {}).items():
                 container_path = os.path.split(host_path)[-1]
                 container_path = os.path.join("/", base_container_path, container_path)
                 volumes[host_path] = container_path
-
         return volumes
 
     def get_container_config(self) -> Dict[str, Any]:
@@ -129,10 +130,39 @@ class ConfigManager:
             Dict[str, Any]: Конфигурация с путями контейнера
         """
         container_cfg = {}
-        for dir_type, dirs in self.cfg.items():
-            container_cfg[dir_type] = {}
-            for dir_name, host_path in dirs.items():
-                container_path = self.volumes.get(host_path)
-                if container_path:
-                    container_cfg[dir_type][dir_name] = container_path
+        for dir_type in ["data_dirs", "system_dirs"]:
+            if dir_type in self.cfg:
+                container_cfg[dir_type] = {}
+                for dir_name, host_path in self.cfg[dir_type].items():
+                    container_path = self.volumes.get(host_path)
+                    if container_path:
+                        container_cfg[dir_type][dir_name] = container_path
         return container_cfg
+
+    def load_packages(self, package_type: str) -> List[str]:
+        """
+        Загружает список пакетов из файла с требованиями
+
+        Args:
+            package_type (str): Тип пакетов ('vlm_run' или 'eval_run')
+
+        Returns:
+            List[str]: Список URL пакетов
+
+        Raises:
+            ValueError: При некорректном типе пакетов
+            FileNotFoundError: Если файл требований не найден
+        """
+        if package_type not in ("vlm_run", "eval_run"):
+            raise ValueError("package_type должен быть 'vlm_run' или 'eval_run'")
+
+        file_key = f"{package_type}_packages"
+        file_path = self.cfg.get(file_key)
+
+        if not file_path or not os.path.exists(file_path):
+            raise FileNotFoundError(f"Файл {file_path} не найден")
+
+        with open(file_path, "r") as f:
+            packages = [line.strip() for line in f if line.strip()]
+
+        return packages
