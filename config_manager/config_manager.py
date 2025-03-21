@@ -43,6 +43,9 @@ class ConfigManager:
             'vlmhyperbench/vlm_base.csv'
         """
         default_cfg = {
+            "user_config": "user_config.csv",
+            "benchmark_run_cfg": "vlmhyperbench/cfg/BenchmarkRunConfig.json",
+            "vlm_base": "vlmhyperbench/vlm_base.csv",
             "data_dirs": {
                 "datasets": "vlmhyperbench/Datasets",
                 "model_answers": "vlmhyperbench/ModelsAnswers",
