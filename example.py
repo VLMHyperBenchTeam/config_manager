@@ -2,7 +2,7 @@ from config_manager.config_manager import ConfigManager
 
 if __name__ == "__main__":
     # Загрузка конфига из файла
-    cfg_path = "vlmhyperbench/cfg/VLMHyperBench_config.json"
+    cfg_path = "vlmhyperbench/system_dirs/cfg/VLMHyperBench_config.json"
 
     # Создаем конфиг для VLMHyperBench по умолчанию
     config = ConfigManager(cfg_path, default=True)
